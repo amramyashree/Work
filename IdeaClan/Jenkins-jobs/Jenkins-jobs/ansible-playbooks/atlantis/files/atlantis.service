@@ -1,0 +1,18 @@
+[Unit]
+Description=Atlantis Server
+
+[Service]
+User=root
+Group=root
+
+ExecStart=sh /etc/atlantis/start-atlantis.sh >> /var/log/atlantis.log 2>&1
+
+WorkingDirectory=/etc/atlantis
+
+StandardOutput=append:/var/log/atlantis.log
+StandardError=append:/var/log/atlantis.log
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
