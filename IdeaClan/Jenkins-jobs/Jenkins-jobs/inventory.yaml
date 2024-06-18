@@ -1,0 +1,5 @@
+# Simple Inventory for Ansible with One Host
+
+[atlantis_server]
+3.108.9.147 ansible_user=ubuntu ansible_ssh_private_key_file=/home/ubuntu/ansible-keypair.pem ansible_python_interpreter=/usr/bin/python3
+
