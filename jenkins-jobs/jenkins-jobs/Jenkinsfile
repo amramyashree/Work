@@ -1,0 +1,75 @@
+@Library('Allen_Shared_Libraries') _
+pipeline {
+    agent {
+        docker {
+            alwaysPull true
+            image '537984406465.dkr.ecr.ap-south-1.amazonaws.com/allen-jenkins-agent:devops'
+            registryUrl 'https://537984406465.dkr.ecr.ap-south-1.amazonaws.com'
+            registryCredentialsId 'ecr:ap-south-1:AWSKey'
+            args '-v /var/run/docker.sock:/var/run/docker.sock -u 0:0 --network host'
+        }
+    }
+    options {
+        ansiColor('xterm')
+    }
+
+    environment {
+        REPO = "Jenkins-jobs"
+        ANSIBLE_PLAYBOOK = "ansible-playbooks/atlantis/atlantis-setup.yaml"
+        REMOTE_ADDRESS = "10.0.6.183"
+        SSH_CREDENTIALS = credentials('jenkin-ubuntu')
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                // Get the latest code from your version control system
+                checkout scm
+            }
+        }
+
+        stage('Deploy with Ansible') {
+            steps {
+                script {
+                    // Ansible playbook execution
+                    withCredentials([sshUserPrivateKey(credentialsId: 'jenkin-ubuntu', keyFileVariable: 'SSH_KEY')]) {
+                        ansiColor('xterm') {
+                            ansiblePlaybook(
+                                credentialsId: 'jenkin-ubuntu',
+                                inventory: 'ansible-playbooks/atlantis/inventory.ini',
+                                playbook: "ansible-playbooks/atlantis/playbooks/atlantis-setup.yaml",
+                                colorizedOutput: true,
+                                disableHostKeyChecking: true
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Post-Deployment Tests') {
+            when {
+                branch 'main'
+            }
+            steps {
+                // Run post-deployment tests
+                echo 'Running post-deployment tests...'
+                // Add tests you might want to run post-deployment
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up resources...'
+            // Add any clean-up actions here
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+            // Handle failures, for example, notify stakeholders
+        }
+    }
+}
