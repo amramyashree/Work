@@ -1,0 +1,21 @@
+[Unit]
+Description=SonarQube service
+After=syslog.target network.target
+
+[Service]
+Type=simple
+User=sonarqube
+Group=sonarqube
+PermissionsStartOnly=true
+ExecStart=/etc/sonarqube/bin/linux-x86-64/sonar.sh start
+ExecStop=/etc/sonarqube/bin/linux-x86-64/sonar.sh stop
+Restart=always
+LimitNOFILE=65536
+LimitNPROC=4096
+TimeoutStartSec=5
+TimeoutStopSec=30
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,51 @@
+repos:
+  - id: /.*/
+    workflow: terragrunt
+    allowed_overrides: [workflow]
+    #plan_requirements: [mergeable]
+    apply_requirements: [mergeable, approved, undiverged]
+    pre_workflow_hooks:
+      - run: terragrunt-atlantis-config generate --output atlantis.yaml --autoplan --execution-order-groups --workflow terragrunt
+        #      - run: |
+        #  /tmp/infracost --version && [ $(/tmp/infracost --version 2>&1 | grep -c "A new version of Infracost is available") = 0 ] || \
+        #    curl -L https://infracost.io/downloads/v0.10/infracost-linux-amd64.tar.gz --output infracost.tar.gz && \
+        #    tar -xvf infracost.tar.gz && \
+        #    mv infracost-linux-amd64 /tmp/infracost
+
+workflows:
+  terragrunt:
+    plan:
+      steps:
+      - env:
+          name: TF_WORKSPACE
+          command: echo $WORKSPACE
+      - env:
+          name: TERRAGRUNT_TFPATH
+          command: 'echo "terraform${ATLANTIS_TERRAFORM_VERSION}"'
+      - env:
+          # Reduce Terraform suggestion output
+          name: TF_IN_AUTOMATION
+          value: 'true'
+            #- env:
+            #name: INFRACOST_OUTPUT
+            #command: 'echo "/tmp/$BASE_REPO_OWNER-$BASE_REPO_NAME-$PULL_NUM/$WORKSPACE-${REPO_REL_DIR//\//-}-infracost.json"'
+      - run:
+          # Allow for targetted plans/applies as not supported for Terraform wrappers by default
+          command: terragrunt plan -input=false $(printf '%s' $COMMENT_ARGS | sed 's/,/ /g' | tr -d '\\') --terragrunt-ignore-external-dependencies -no-color -out $PLANFILE
+      - run: |
+          terragrunt show $PLANFILE
+    apply:
+      steps:
+      - env:
+          name: TF_WORKSPACE
+          command: echo $WORKSPACE
+      - env:
+          name: TERRAGRUNT_TFPATH
+          command: 'echo "terraform${ATLANTIS_TERRAFORM_VERSION}"'
+      - env:
+          # Reduce Terraform suggestion output
+          name: TF_IN_AUTOMATION
+          value: 'true'
+      - run:
+          # Allow for targetted plans/applies as not supported for Terraform wrappers by default
+          command: terragrunt run-all apply -auto-approve -input=false $(printf '%s' $COMMENT_ARGS | sed 's/,/ /g' | tr -d '\\') --terragrunt-ignore-external-dependencies --terragrunt-non-interactive -no-color $PLANFILE
